@@ -519,7 +519,8 @@ and class_ = (
 and class_body = (
     Token.t (* "{" *)
   * [
-        `Deco of decorator
+        `Semg_ellips of Token.t (* "..." *)
+      | `Deco of decorator
       | `Meth_defi_opt_choice_auto_semi of (
             method_definition
           * semicolon option
@@ -743,6 +744,7 @@ and expression = [
       * Token.t (* "as" *)
       * [ `Type of type_ | `Temp_lit_type of template_literal_type ]
     )
+  | `Satiss_exp of (expression * Token.t (* "satisfies" *) * type_)
   | `Inte_module of internal_module
   | `Prim_exp of primary_expression
   | `Choice_jsx_elem of jsx_element_
@@ -1867,6 +1869,10 @@ type return_statement (* inlined *) = (
     Token.t (* "return" *)
   * expressions option
   * semicolon
+)
+
+type satisfies_expression (* inlined *) = (
+    expression * Token.t (* "satisfies" *) * type_
 )
 
 type switch_statement (* inlined *) = (
