@@ -2924,7 +2924,7 @@ and map_primary_type (env : env) (x : CST.primary_type) =
       let v2 = map_primary_type env v2 in
       R.Tuple [v1; v2]
     )
-  | `Type_query (v1, v2) -> R.Case ("Type_query",
+  | `Type_query (v1, v2, v3) -> R.Case ("Type_query",
       let v1 = (* "typeof" *) token env v1 in
       let v2 =
         (match v2 with
@@ -2942,7 +2942,14 @@ and map_primary_type (env : env) (x : CST.primary_type) =
           )
         )
       in
-      R.Tuple [v1; v2]
+      let v3 =
+        (match v3 with
+        | Some x -> R.Option (Some (
+            map_type_arguments env x
+          ))
+        | None -> R.Option None)
+      in
+      R.Tuple [v1; v2; v3]
     )
   | `Index_type_query (v1, v2) -> R.Case ("Index_type_query",
       let v1 = (* "keyof" *) token env v1 in
@@ -3001,6 +3008,27 @@ and map_primary_type (env : env) (x : CST.primary_type) =
       let v2 = (* "|" *) token env v2 in
       let v3 = map_type_ env v3 in
       R.Tuple [v1; v2; v3]
+    )
+  | `Import_type (v1, v2, v3, v4, v5, v6) -> R.Case ("Import_type",
+      let v1 = (* import *) token env v1 in
+      let v2 = (* "(" *) token env v2 in
+      let v3 = map_string_ env v3 in
+      let v4 = (* ")" *) token env v4 in
+      let v5 =
+        R.List (List.map (fun (v1, v2) ->
+          let v1 = (* "." *) token env v1 in
+          let v2 = (* identifier *) token env v2 in
+          R.Tuple [v1; v2]
+        ) v5)
+      in
+      let v6 =
+        (match v6 with
+        | Some x -> R.Option (Some (
+            map_type_arguments env x
+          ))
+        | None -> R.Option None)
+      in
+      R.Tuple [v1; v2; v3; v4; v5; v6]
     )
   )
 

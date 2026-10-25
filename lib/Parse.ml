@@ -1776,6 +1776,24 @@ let children_regexps : (string * Run.exp option) list = [
       );
     ];
   );
+  "import_type",
+  Some (
+    Seq [
+      Token (Name "import");
+      Token (Literal "(");
+      Token (Name "string");
+      Token (Literal ")");
+      Repeat (
+        Seq [
+          Token (Literal ".");
+          Token (Name "identifier");
+        ];
+      );
+      Opt (
+        Token (Name "type_arguments");
+      );
+    ];
+  );
   "index_signature",
   Some (
     Seq [
@@ -2731,6 +2749,7 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Name "template_literal_type");
       Token (Name "intersection_type");
       Token (Name "union_type");
+      Token (Name "import_type");
     |];
   );
   "property_name",
@@ -3330,6 +3349,9 @@ let children_regexps : (string * Run.exp option) list = [
         Token (Name "type_query_call_expression");
         Token (Name "identifier");
       |];
+      Opt (
+        Token (Name "type_arguments");
+      );
     ];
   );
   "type_query_call_expression",
@@ -7934,6 +7956,37 @@ and trans_implements_clause ((kind, body) : mt) : CST.implements_clause =
       )
   | Leaf _ -> assert false
 
+and trans_import_type ((kind, body) : mt) : CST.import_type =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1; v2; v3; v4; v5] ->
+          (
+            trans_import (Run.matcher_token v0),
+            Run.trans_token (Run.matcher_token v1),
+            trans_string_ (Run.matcher_token v2),
+            Run.trans_token (Run.matcher_token v3),
+            Run.repeat
+              (fun v ->
+                (match v with
+                | Seq [v0; v1] ->
+                    (
+                      Run.trans_token (Run.matcher_token v0),
+                      trans_identifier (Run.matcher_token v1)
+                    )
+                | _ -> assert false
+                )
+              )
+              v4
+            ,
+            Run.opt
+              (fun v -> trans_type_arguments (Run.matcher_token v))
+              v5
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
 and trans_index_signature ((kind, body) : mt) : CST.index_signature =
   match body with
   | Children v ->
@@ -10562,6 +10615,10 @@ and trans_primary_type ((kind, body) : mt) : CST.primary_type =
           `Union_type (
             trans_union_type (Run.matcher_token v)
           )
+      | Alt (19, v) ->
+          `Import_type (
+            trans_import_type (Run.matcher_token v)
+          )
       | _ -> assert false
       )
   | Leaf _ -> assert false
@@ -11982,7 +12039,7 @@ and trans_type_query ((kind, body) : mt) : CST.type_query =
   match body with
   | Children v ->
       (match v with
-      | Seq [v0; v1] ->
+      | Seq [v0; v1; v2] ->
           (
             Run.trans_token (Run.matcher_token v0),
             (match v1 with
@@ -12004,6 +12061,10 @@ and trans_type_query ((kind, body) : mt) : CST.type_query =
                 )
             | _ -> assert false
             )
+            ,
+            Run.opt
+              (fun v -> trans_type_arguments (Run.matcher_token v))
+              v2
           )
       | _ -> assert false
       )
